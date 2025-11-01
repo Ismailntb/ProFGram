@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profogram - Instagram Profile Photo Downloader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                    </svg>
+                </div>
+                <span class="logo-text">Profogram</span>
+            </div>
+            <nav class="nav">
+                <a href="#" class="nav-link">API</a>
+                <a href="mailto:support@profogram.world" class="nav-link">Support</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Hero Section -->
+            <div class="hero">
+                <h1 class="hero-title">Profogram</h1>
+                <p class="hero-description">
+                    Instantly retrieve and download high-resolution Instagram profile photos. 
+                    Simply paste a public profile URL or @username below.
+                </p>
+            </div>
+
+            <!-- Fetch Form -->
+            <form id="fetchForm" class="fetch-form">
+                <div class="form-card">
+                    <div class="form-row">
+                        <div class="input-wrapper">
+                            <input 
+                                type="text" 
+                                id="usernameInput" 
+                                class="input" 
+                                placeholder="@username or https://instagram.com/username"
+                                autocomplete="off"
+                            >
+                        </div>
+                        <button type="submit" id="fetchButton" class="button button-primary">
+                            <svg class="button-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <span class="button-text">Fetch Profile</span>
+                        </button>
+                    </div>
+                    <p class="form-hint">
+                        Enter a public Instagram profile URL or @username to retrieve the profile photo
+                    </p>
+                </div>
+            </form>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="error-message hidden"></div>
+
+            <!-- Loading Spinner -->
+            <div id="loadingSpinner" class="loading-spinner hidden">
+                <div class="spinner"></div>
+                <p>Fetching profile data...</p>
+            </div>
+
+            <!-- Profile Preview -->
+            <div id="profilePreview" class="profile-preview hidden">
+                <div class="profile-card">
+                    <div class="profile-content">
+                        <div class="profile-left">
+                            <div class="profile-image-wrapper">
+                                <div class="profile-image-border">
+                                    <img id="profileImage" src="" alt="Profile photo" class="profile-image">
+                                </div>
+                                <div class="profile-badge">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-right">
+                            <div class="profile-header">
+                                <h2 id="profileUsername" class="profile-username"></h2>
+                                <span class="profile-tag">Public Profile</span>
+                            </div>
+
+                            <div class="profile-meta">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                <span id="profileFullName"></span>
+                                <span class="separator">•</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <span id="profileFollowers"></span>
+                            </div>
+
+                            <div class="profile-actions">
+                                <button id="downloadButton" class="button button-primary button-download">
+                                    <svg class="button-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    Download HD Profile Photo
+                                </button>
+
+                                <div class="profile-specs">
+                                    <div class="spec-grid">
+                                        <div class="spec-item">
+                                            <p class="spec-label">Image Quality</p>
+                                            <p class="spec-value">High Resolution</p>
+                                        </div>
+                                        <div class="spec-item">
+                                            <p class="spec-label">Format</p>
+                                            <p class="spec-value">JPEG / WebP</p>
+                                        </div>
+                                        <div class="spec-item">
+                                            <p class="spec-label">Processing</p>
+                                            <p class="spec-value">Optimized</p>
+                                        </div>
+                                        <div class="spec-item">
+                                            <p class="spec-label">Delivery</p>
+                                            <p class="spec-value">Edge CDN</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="technical-details">
+                        <details class="details-accordion">
+                            <summary class="details-summary">
+                                <span>Technical Details</span>
+                                <span class="details-arrow">▼</span>
+                            </summary>
+                            <div class="details-content">
+                                <p>✓ Server-side validation completed</p>
+                                <p>✓ Image optimized and compressed</p>
+                                <p>✓ Metadata stripped (EXIF removed)</p>
+                                <p>✓ Cached on edge CDN for fast delivery</p>
+                                <p>✓ Format negotiation: WebP/AVIF support</p>
+                                <p>✓ Rate limiting applied</p>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How It Works -->
+            <div class="how-it-works">
+                <h2 class="section-title">How It Works</h2>
+                <div class="steps-grid">
+                    <div class="step">
+                        <div class="step-number step-number-purple">1</div>
+                        <h3 class="step-title">Enter Username</h3>
+                        <p class="step-description">Paste an Instagram URL or @username into the input field.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number step-number-pink">2</div>
+                        <h3 class="step-title">Fetch Profile</h3>
+                        <p class="step-description">Our backend securely retrieves the profile photo from Instagram's public API.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number step-number-orange">3</div>
+                        <h3 class="step-title">Download HD</h3>
+                        <p class="step-description">Get the optimized, high-resolution image delivered via our CDN.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Important Notes -->
+            <div class="info-box">
+                <h3 class="info-title">Important Notes</h3>
+                <ul class="info-list">
+                    <li>• Only public Instagram profiles are supported</li>
+                    <li>• No user credentials or login required</li>
+                    <li>• All access limited to publicly available content</li>
+                    <li>• Service complies with Instagram's Terms of Service</li>
+                    <li>• Images are optimized and cached on our edge CDN</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-content">
+            <p class="footer-copyright">© 2025 Profogram. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="#" class="footer-link">Terms</a>
+                <a href="#" class="footer-link">Privacy</a>
+                <a href="mailto:support@profogram.world" class="footer-link">support@profogram.world</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+        <div class="toast-content">
+            <svg class="toast-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <div class="toast-text">
+                <p class="toast-title" id="toastTitle"></p>
+                <p class="toast-description" id="toastDescription"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
