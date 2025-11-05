@@ -2,19 +2,20 @@
 // CONFIGURATION
 // ============================================
 const CONFIG = {
-    // RapidAPI Configuration
-    // NEW API DETAILS: instagram-api-media-downloader
-    RAPIDAPI_KEY: '34ccc1832cmshd3d8ffe2adce195p1f2a47jsn1880330aa693', // ⚠️ NEW API KEY INSERTED HERE
-    RAPIDAPI_HOST: 'instagram-api-media-downloader.p.rapidapi.com',
-    API_ENDPOINT: 'https://instagram-api-media-downloader.p.rapidapi.com/download', // ⚠️ NEW ENDPOINT
+    // API Configuration fields are now placeholders, assuming a backend will handle the Graph API.
+    // The Graph API is not run directly from this client-side code for security.
+    RAPIDAPI_HOST: null,
+    API_ENDPOINT: null,
     
-    // For production, use a backend proxy instead of exposing the API key:
-    // USE_BACKEND_PROXY: true,
-    // BACKEND_URL: 'https://api.profogram.world/api/v1/fetch'
+    // Use a backend proxy for security:
+    USE_BACKEND_PROXY: true,
+    // This URL is where your secure server (that runs the Graph API call) is located.
+    BACKEND_URL: 'https://api.your-secure-backend.com/api/v1/fetch-instagram-profile' 
 };
 
 // ============================================
 // DOM Elements
+// ... (DOM elements remain unchanged)
 // ============================================
 const fetchForm = document.getElementById('fetchForm');
 const usernameInput = document.getElementById('usernameInput');
@@ -37,6 +38,7 @@ const toastDescription = document.getElementById('toastDescription');
 let currentProfileData = null;
 
 // Helper Functions
+// ... (Helper functions remain unchanged)
 function extractUsername(input) {
     // Extract username from URL or @username
     if (input.includes('instagram.com/')) {
@@ -131,100 +133,57 @@ function displayProfile(profileData) {
 }
 
 
-// ⚠️ NEW: XHR Request Wrapper as a Promise 
-// to replace the original 'fetch' function
-function xhrPromise(username) {
-    return new Promise((resolve, reject) => {
-        const url = `${CONFIG.API_ENDPOINT}?username=${username}`; // Use GET with query param
-        const xhr = new XMLHttpRequest();
-        
-        xhr.withCredentials = true;
-        
-        xhr.open('GET', url);
-        xhr.setRequestHeader('x-rapidapi-key', CONFIG.RAPIDAPI_KEY);
-        xhr.setRequestHeader('x-rapidapi-host', CONFIG.RAPIDAPI_HOST);
-        
-        // Handle successful response
-        xhr.onload = function () {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    const data = JSON.parse(xhr.responseText);
-                    resolve(data);
-                } catch (e) {
-                    reject(new Error('Failed to parse API response.'));
-                }
-            } else if (xhr.status === 404) {
-                 reject(new Error('Profile not found. Please check the username.'));
-            } else if (xhr.status === 403) {
-                 reject(new Error('API key invalid or access denied. Please check your RapidAPI credentials.'));
-            } else if (xhr.status === 429) {
-                 reject(new Error('Rate limit exceeded. Please try again later.'));
-            } else {
-                reject(new Error(`HTTP error! status: ${xhr.status}`));
-            }
-        };
-        
-        // Handle network errors
-        xhr.onerror = function () {
-            reject(new Error('Network error or CORS issue.'));
-        };
-        
-        xhr.send();
-    });
-}
-
+// ⚠️ START: Refactored fetchProfile for Backend Proxy
 async function fetchProfile(input) {
     hideError();
     showLoading();
     
-    try {
-        // Extract username from input
-        const username = extractUsername(input);
-        
-        // Validate API key is configured (Updated check)
-        if (!CONFIG.RAPIDAPI_KEY || CONFIG.RAPIDAPI_KEY === 'YOUR_RAPIDAPI_KEY_HERE') {
-            throw new Error('API key not configured. Please add your RapidAPI key to the CONFIG object.');
-        }
+    const username = extractUsername(input);
 
-        // ⚠️ REPLACING 'fetch' WITH 'xhrPromise'
-        const data = await xhrPromise(username); 
-        console.log('API Response:', data); // For debugging
+    try {
+        // 1. Send the request to your secure backend
+        const response = await fetch(CONFIG.BACKEND_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+                // No API key here! The backend holds the token securely.
+            },
+            body: JSON.stringify({ 
+                username: username 
+            })
+        });
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                 throw new Error('Profile not found via backend. Check ID/Username.');
+            } else if (response.status === 403) {
+                 throw new Error('Backend failed: Graph API token error.');
+            } else {
+                throw new Error(`Backend error! status: ${response.status}`);
+            }
+        }
         
-        // Parse the response and extract profile information
-        // NOTE: The structure below is based on the OLD API. It LIKELY needs adjustment 
-        // to match the 'instagram-api-media-downloader' response structure.
+        const data = await response.json();
+        console.log('Backend Response (from Graph API):', data); // For debugging
+
+        // 2. Parse the response based on the fields requested in your curl command
+        // The structure below assumes your backend translates the Graph API fields 
+        // back into a clean JSON format for the frontend.
         let profileData;
         
-        if (data && data.user) {
-            // Assuming this new API returns similar structure to the old one's 'data.user'
-            const user = data.user;
-            // The new API endpoint is '/download', so it might not return all profile data.
-            // We'll use the available fields.
-            
-            // NOTE: The old API had follower counts. This new one may not. 
-            // You might need a different API for full profile data.
+        if (data && data.username && data.profile_pic) {
             profileData = {
-                username: user.username || username,
-                fullName: user.full_name || 'Instagram User',
-                profileImageUrl: user.profile_pic_url_hd || user.profile_pic_url || '',
-                downloadUrl: user.profile_pic_url_hd || user.profile_pic_url || '',
-                followers: user.follower_count || 0, // This is a guess/fallback
-                isPublic: !user.is_private
-            };
-        } else if (data && data.profile_pic_url_hd) {
-            // Simple response focused only on the image
-            profileData = {
-                username: username,
-                fullName: 'Instagram User',
-                profileImageUrl: data.profile_pic_url_hd || data.profile_pic_url,
-                downloadUrl: data.profile_pic_url_hd || data.profile_pic_url,
-                followers: 0, 
-                isPublic: true
+                username: data.username,
+                fullName: data.name || 'Instagram User',
+                profileImageUrl: data.profile_pic,
+                downloadUrl: data.profile_pic.replace('/s150x150/', '/'), // Simple guess to get a larger size
+                followers: data.follower_count || 0,
+                isPublic: true // Graph API typically works with business/creator accounts
             };
         } else {
-            // Fallback: If we can't parse the response properly
-            console.warn('Unexpected API response structure:', data);
-            throw new Error('Unable to parse profile data. The API response format may have changed.');
+            // Fallback: If we can't parse the response properly, assume a structural issue
+            console.warn('Unexpected Backend response structure:', data);
+            throw new Error('Unable to parse profile data from backend response.');
         }
         
         // Validate that we have at least a profile image
@@ -233,35 +192,29 @@ async function fetchProfile(input) {
         }
         
         displayProfile(profileData);
-        
-        // Add to search history
         addToHistory(username);
         
     } catch (error) {
         console.error('Error fetching profile:', error);
         
         // Display appropriate error message
-        if (error.message.includes('Rate limit')) {
-            showError('Rate limit exceeded. Please try again in a few moments.');
-        } else if (error.message.includes('API key')) {
-            showError('API configuration error. Please contact support.');
-        } else if (error.message.includes('Profile not found')) {
-            showError('Profile not found. Please check the username and try again.');
+        if (error.message.includes('Profile not found')) {
+            showError(`Profile '${username}' not found. Check if the user is linked to your app.`);
+        } else if (error.message.includes('token error')) {
+            showError('Authentication failed. Check your Graph API access token on the backend.');
         } else if (error.message.includes('parse profile data')) {
-            showError('Unable to retrieve profile data. The API format may have changed.');
-        } else if (error.message.includes('Profile image not found')) {
-            showError('Profile image is not available for this account.');
-        } else if (error.message.includes('Network error or CORS issue')) {
-            showError('Network error. Check your connection or use a backend proxy for CORS.');
+            showError('Data received, but failed to extract profile information. Check backend payload.');
         } else {
-            showError('Failed to fetch profile. Please check the username and try again.');
+            showError(`Failed to fetch profile: ${error.message}`);
         }
     } finally {
         hideLoading();
     }
 }
+// ⚠️ END: Refactored fetchProfile for Backend Proxy
 
 function downloadProfile() {
+// ... (downloadProfile and Event Listeners functions remain unchanged)
     if (!currentProfileData) return;
     
     // Create a temporary link element to trigger download
@@ -306,7 +259,6 @@ usernameInput.addEventListener('input', () => {
 });
 
 // Example usernames for testing (optional)
-// You can remove this section in production
 const exampleUsernames = [
     'instagram',
     'natgeo',
@@ -316,7 +268,6 @@ const exampleUsernames = [
 ];
 
 // Auto-populate with random example on page load (optional - for demo purposes)
-// Comment out or remove in production
 // window.addEventListener('load', () => {
 //     const randomExample = exampleUsernames[Math.floor(Math.random() * exampleUsernames.length)];
 //     usernameInput.placeholder = `@username or https://instagram.com/username (try: @${randomExample})`;
@@ -324,23 +275,32 @@ const exampleUsernames = [
 
 // API Integration Notes:
 /*
-RAPIDAPI INSTAGRAM API INTEGRATION (CURRENT IMPLEMENTATION)
+META GRAPH API INTEGRATION
 
-The app is now integrated with RapidAPI's Instagram-api-media-downloader API using XMLHttpRequest.
+The client-side code is now configured to call a secure backend proxy to fetch data.
 
-SETUP INSTRUCTIONS:
-1. The new API key and endpoint have been added to the CONFIG object.
-2. The fetchProfile function now uses an XHR-based promise wrapper.
+SECURITY WARNING:
+The Graph API call you provided (curl...) contains sensitive data (an access token) 
+and MUST be executed on a secure, server-side environment (Node.js, Python, etc.).
+DO NOT expose your access_token in client-side JavaScript.
 
-IMPORTANT NOTES:
-- The new API endpoint is a GET request and uses the 'username' as a query parameter.
-- The data parsing logic inside fetchProfile (where it extracts username, followers, etc.) is based on the OLD API's response structure. It is highly likely you will need to inspect the response from the 'instagram-api-media-downloader' API and adjust the parsing logic (lines ~260-300) to ensure profile data is extracted correctly.
-- If you run into CORS issues, you MUST use a backend proxy. XHR is often more strict with CORS than 'fetch'.
+BACKEND IMPLEMENTATION (Conceptual Flow):
+1.  **Client-side (This Script):** Calls POST to `CONFIG.BACKEND_URL` with `{ username: "..." }`.
+2.  **Server-side:**
+    a.  Receives the `username`.
+    b.  **Crucially:** Translates the public username into the Instagram Scoped User ID. (This usually requires a prior search API call).
+    c.  Constructs and runs your `curl` command (as an HTTP request, e.g., using `fetch` or a library like `axios`) with the secure, hidden `access_token` and the retrieved User ID.
+    d.  Parses the Meta Graph API response.
+    e.  Sends a clean JSON response back to the client-side.
+
+CURRENT STATUS:
+The 'fetchProfile' function is ready to connect to your secure backend at:
+**`https://api.your-secure-backend.com/api/v1/fetch-instagram-profile`**
 */
 
 // Additional features you might want to add:
+// ... (all other helper functions remain unchanged)
 
-// 1. Copy download URL to clipboard
 function copyDownloadUrl() {
     if (!currentProfileData) return;
     
@@ -353,7 +313,6 @@ function copyDownloadUrl() {
         });
 }
 
-// 2. Share functionality
 function shareProfile() {
     if (!currentProfileData || !navigator.share) return;
     
@@ -366,7 +325,6 @@ function shareProfile() {
     });
 }
 
-// 3. History of recent searches (localStorage)
 function addToHistory(username) {
     let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
     history = [username, ...history.filter(u => u !== username)].slice(0, 10);
@@ -377,7 +335,6 @@ function getHistory() {
     return JSON.parse(localStorage.getItem('searchHistory') || '[]');
 }
 
-// 4. Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
     // Ctrl/Cmd + K to focus search
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -396,8 +353,8 @@ document.addEventListener('keydown', (e) => {
 console.log('%c🚀 Profogram', 'font-size: 20px; font-weight: bold; color: #9333ea;');
 console.log('%cInstagram Profile Photo Downloader', 'font-size: 14px; color: #6b7280;');
 console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #d1d5db;');
-console.log('%c⚙️  NEW API CONFIGURED', 'font-size: 14px; font-weight: bold; color: #16a34a;');
-console.log('%cUsing: instagram-api-media-downloader (XHR)', 'font-size: 12px; color: #6b7280;');
-console.log('%cAPI Key Status: ✅ Configured', 'font-size: 12px; color: #16a34a;');
+console.log('%c🔒 SECURE BACKEND INTEGRATION READY', 'font-size: 14px; font-weight: bold; color: #059669;');
+console.log('%cClient is calling: ' + CONFIG.BACKEND_URL, 'font-size: 12px; color: #6b7280;');
+console.log('%cYou must build a server to execute the Graph API call.', 'font-size: 12px; color: #dc2626;');
 console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #d1d5db;');
 console.log('%c📧 Contact: support@profogram.world', 'font-size: 12px; color: #9ca3af;');
