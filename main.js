@@ -1,91 +1,59 @@
 // ============================================
 // CONFIGURATION
 // ============================================
-const CONFIG = {
-    // RapidAPI Configuration for Profile Info (Instagram120)
-    RAPIDAPI_KEY: 'YOUR_RAPIDAPI_KEY_HERE',
-    RAPIDAPI_HOST: 'instagram120.p.rapidapi.com',
-    API_ENDPOINT: 'https://instagram120.p.rapidapi.com/api/instagram/posts',
+const data = null;
 
-    // RapidAPI Configuration for Media Downloader
-    MEDIA_API_HOST: 'instagram-api-media-downloader.p.rapidapi.com',
-    MEDIA_API_URL: 'https://instagram-api-media-downloader.p.rapidapi.com/download',
+const xhr = new XMLHttpRequest();
+xhr.withCredentials = true;
+
+xhr.addEventListener('readystatechange', function () {
+	if (this.readyState === this.DONE) {
+		console.log(this.responseText);
+	}
+});
+
+xhr.open('GET', 'https://instagram-api-media-downloader.p.rapidapi.com/download');
+xhr.setRequestHeader('x-rapidapi-key', '34ccc1832cmshd3d8ffe2adce195p1f2a47jsn1880330aa693');
+xhr.setRequestHeader('x-rapidapi-host', 'instagram-api-media-downloader.p.rapidapi.com');
+
+xhr.send(data);
 };
 
 // ============================================
-// EXISTING FUNCTIONS (unchanged)
+// FETCH PROFILE FUNCTION (Replaced API Section)
 // ============================================
-// ... all your original code (fetchProfile, displayProfile, showError, etc.)
-
-// ============================================
-// NEW FUNCTION: Download Instagram Media (Posts/Reels)
-// ============================================
-async function fetchInstagramMedia(url) {
-    if (!url || !url.includes('instagram.com')) {
-        showError('Please enter a valid Instagram post or reel URL.');
-        return;
-    }
-
+async function fetchProfile(input) {
+    hideError();
     showLoading();
 
     try {
-        const response = await fetch(`${CONFIG.MEDIA_API_URL}?url=${encodeURIComponent(url)}`, {
-            method: 'GET',
-            headers: {
-                'x-rapidapi-host': CONFIG.MEDIA_API_HOST,
-                'x-rapidapi-key': CONFIG.RAPIDAPI_KEY,
+        const username = extractUsername(input);
+
+        if (CONFIG.RAPIDAPI_KEY === 'YOUR_RAPIDAPI_KEY_HERE') {
+            throw new Error('API key not configured. Please add your RapidAPI key to CONFIG.');
+        }
+
+        // ✅ New API call using XMLHttpRequest
+        const data = null;
+        const xhr = new XMLHttpRequest();
+        xhr.withCredentials = true;
+
+        xhr.addEventListener('readystatechange', function () {
+            if (this.readyState === this.DONE) {
+                console.log('API Response:', this.responseText);
+                // يمكنك هنا تعالج البيانات حسب الحاجة
             }
         });
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch media. Status: ${response.status}`);
-        }
+        xhr.open('GET', CONFIG.API_ENDPOINT);
+        xhr.setRequestHeader('x-rapidapi-key', CONFIG.RAPIDAPI_KEY);
+        xhr.setRequestHeader('x-rapidapi-host', CONFIG.RAPIDAPI_HOST);
+        xhr.send(data);
 
-        const data = await response.json();
-        console.log('Media API Response:', data);
-
-        if (!data || !data.media || data.media.length === 0) {
-            throw new Error('No media found for this URL.');
-        }
-
-        // Download first media item
-        const mediaUrl = data.media[0].url;
-        const link = document.createElement('a');
-        link.href = mediaUrl;
-        link.download = 'instagram_media';
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        showToast('Download started!', 'Your Instagram media is being downloaded.');
     } catch (error) {
-        console.error('Error fetching media:', error);
-        showError('Failed to download media. Please check the URL or try again later.');
+        console.error('Error fetching profile:', error);
+        showError('Failed to fetch profile. Please check and try again.');
     } finally {
         hideLoading();
     }
-}
-
-// ============================================
-// ADDITION TO HTML UI (OPTIONAL)
-// ============================================
-// Example: Add a field or button to download media by URL
-/*
-<form id="mediaForm">
-  <input id="mediaUrlInput" placeholder="Paste Instagram post/reel URL here" />
-  <button id="mediaButton">Download Media</button>
-</form>
-*/
-
-const mediaForm = document.getElementById('mediaForm');
-const mediaUrlInput = document.getElementById('mediaUrlInput');
-const mediaButton = document.getElementById('mediaButton');
-
-if (mediaForm) {
-    mediaForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const input = mediaUrlInput.value.trim();
-        fetchInstagramMedia(input);
-    });
 }
